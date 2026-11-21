@@ -1,0 +1,598 @@
+<title>Layers of Us</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: phone = one question per screen with the portrait growing on top; big screen = toolbar + full stage of portraits that regroup */
+:root {
+  --bg: #F1F2EE;
+  --surface: #FFFFFF;
+  --fg: #1C2130;
+  --muted: #5B6271;
+  --line: #D8DBD2;
+  --accent: #1F6F5C;
+  --accent-fg: #FFFFFF;
+  --accent-soft: #DDEDE7;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #13171F; --surface: #1C2130; --fg: #ECEEF2; --muted: #A1A8B5; --line: #2D3343;
+    --accent: #62C3A5; --accent-fg: #0D1915; --accent-soft: #1E3530; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #13171F; --surface: #1C2130; --fg: #ECEEF2; --muted: #A1A8B5; --line: #2D3343;
+  --accent: #62C3A5; --accent-fg: #0D1915; --accent-soft: #1E3530; color-scheme: dark;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.view { min-height: 100%; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px; }
+
+/* ---------- buttons ---------- */
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 10px 16px; font-weight: 700; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn.ghost { background: transparent; }
+.btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.btn:disabled { opacity: .5; cursor: default; }
+
+/* ---------- home ---------- */
+#v-home .wrap { max-width: 720px; margin: 0 auto; display: grid; gap: 28px; padding-block: 48px; }
+.home-faces { display: flex; gap: 8px; flex-wrap: wrap; }
+.home-faces svg { width: 64px; height: auto; }
+.eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+#v-home h1 { font-size: clamp(40px, 8vw, 68px); }
+#v-home p { max-width: 60ch; color: var(--muted); margin: 0; }
+.entry { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.entry a { display: grid; gap: 6px; padding: 20px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); text-decoration: none; }
+.entry a strong { font-family: var(--font-display); font-size: 22px; }
+.entry a span { color: var(--muted); }
+.entry a:hover { border-color: var(--accent); }
+.note { font-size: 14px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 12px; }
+
+/* ---------- phone ---------- */
+#v-phone .wrap { max-width: 480px; margin: 0 auto; display: grid; gap: 20px; }
+.ph-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); }
+.progress { display: flex; gap: 4px; }
+.progress i { width: 18px; height: 5px; border-radius: 3px; background: var(--line); }
+.progress i.on { background: var(--accent); }
+.ph-portrait { display: grid; place-items: center; }
+.ph-portrait svg { width: min(46vw, 190px); height: auto; }
+.ph-q h2 { font-size: 26px; }
+.ph-q .layer { font-size: 14px; color: var(--muted); margin-top: 6px; }
+.options { display: grid; gap: 10px; }
+.opt { text-align: left; border: 2px solid var(--line); background: var(--surface); border-radius: 12px; padding: 14px 16px; font-size: 17px; }
+.opt[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.signs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.signs button { aspect-ratio: 1; border: 2px solid var(--line); background: var(--surface); border-radius: 12px; display: grid; place-items: center; }
+.signs button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.signs svg { width: 34px; height: 34px; }
+.ph-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.ph-actions .btn { flex: 1 1 auto; padding: 14px 16px; }
+.ph-text { color: var(--muted); margin: 0; }
+.status { font-size: 14px; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); }
+
+/* ---------- screen ---------- */
+#v-screen { height: 100%; display: grid; grid-template-rows: auto 1fr; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding-block: 10px; border-bottom: 1px solid var(--line); background: var(--surface);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.toolbar .brand { font-family: var(--font-display); font-weight: 700; font-size: 20px; margin-right: 8px; }
+.toolbar .sep { width: 1px; height: 26px; background: var(--line); }
+.toolbar .btn { padding: 7px 12px; font-size: 14px; }
+.toolbar select { font: inherit; font-size: 14px; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); max-width: 300px; }
+.toolbar label { font-size: 14px; display: flex; gap: 6px; align-items: center; }
+.toolbar .count { margin-left: auto; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stage-wrap { position: relative; overflow: hidden; }
+#stage { position: absolute; inset: 0; margin: 16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px)); }
+#threads { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+#threads line { stroke: var(--accent); stroke-linecap: round; }
+.card { position: absolute; left: 0; top: 0; border: 0; padding: 0; background: none; color: var(--fg);
+  transition: transform .9s cubic-bezier(.6,.05,.25,1), width .9s cubic-bezier(.6,.05,.25,1), opacity .4s; }
+.card svg { width: 100%; height: auto; display: block; }
+.card.dim { opacity: .28; }
+.card.sel svg { filter: drop-shadow(0 0 0 var(--accent)) drop-shadow(0 0 6px var(--accent)); }
+.card .badge { position: absolute; top: 2%; left: 2%; min-width: 22px; height: 22px; border-radius: 11px; background: var(--accent); color: var(--accent-fg); font-size: 13px; font-weight: 700; display: grid; place-items: center; padding: 0 6px; font-variant-numeric: tabular-nums; }
+.glabel { position: absolute; font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1.2; border-top: 2px solid var(--fg); padding-top: 6px; }
+.glabel small { display: block; font-family: var(--font-body); font-weight: 400; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.glabel.empty { opacity: .45; border-top-style: dashed; }
+.banner { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); width: min(900px, calc(100% - 32px)); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; box-shadow: 0 8px 30px rgba(0,0,0,.12); display: flex; gap: 16px; align-items: flex-start; }
+.banner p { margin: 0; font-family: var(--font-display); font-size: clamp(18px, 2.2vw, 30px); line-height: 1.25; flex: 1; min-width: 0; }
+.banner .k { font-family: var(--font-body); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 4px; }
+.banner .x { border: 0; background: none; font-size: 22px; line-height: 1; color: var(--muted); }
+.panel { position: absolute; top: 12px; right: max(16px, env(safe-area-inset-right, 0px)); width: min(460px, calc(100% - 32px)); max-height: calc(100% - 24px); overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.14); display: grid; gap: 14px; }
+.panel h3 { font-size: 20px; }
+.key-row { display: grid; gap: 6px; }
+.key-row b { font-size: 14px; }
+.key-row .q { font-size: 13px; color: var(--muted); }
+.key-row .minis { display: flex; flex-wrap: wrap; gap: 6px; }
+.key-row figure { margin: 0; width: 70px; display: grid; justify-items: center; gap: 2px; }
+.key-row figure svg { width: 54px; height: auto; }
+.key-row figcaption { font-size: 11px; line-height: 1.2; text-align: center; color: var(--muted); }
+.empty-state { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 8px; color: var(--muted); padding: 16px; }
+.empty-state strong { font-family: var(--font-display); font-size: 26px; color: var(--fg); }
+
+/* blinking, after Nicky Case's faces */
+.eyes { transform-box: fill-box; transform-origin: center; animation: blink 6s infinite; }
+@keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 95.5% { transform: scaleY(.08); } }
+@media (prefers-reduced-motion: reduce) { .eyes { animation: none; } .card { transition: none; } }
+</style>
+
+<div id="v-home" class="view" hidden>
+  <div class="wrap">
+    <div class="home-faces" id="homeFaces" aria-hidden="true"></div>
+    <div style="display:grid;gap:12px">
+      <span class="eyebrow">Workshop prototype</span>
+      <h1>Layers of Us</h1>
+      <p>Eight questions turn each participant into a small layered portrait. Together on one screen, the portraits regroup with every question, so the groups you belong to keep changing. Nobody shares everything, and almost everyone shares something.</p>
+    </div>
+    <div class="entry">
+      <a href="#portrait"><strong>Make my portrait</strong><span>For participants, on a phone. About five minutes.</span></a>
+      <a href="#screen"><strong>Open the shared screen</strong><span>For the facilitator, on the projector.</span></a>
+    </div>
+    <p class="note">This is a prototype. The shared screen starts with 18 example portraits so you can try it alone. Turn them off before the workshop.</p>
+  </div>
+</div>
+
+<div id="v-phone" class="view" hidden>
+  <div class="wrap" id="phone"></div>
+</div>
+
+<div id="v-screen" class="view" hidden>
+  <div class="toolbar">
+    <span class="brand">Layers of Us</span>
+    <button class="btn" id="bTogether" aria-pressed="true">Together</button>
+    <select id="sortSel" aria-label="Sort portraits by question"></select>
+    <span class="sep"></span>
+    <button class="btn" id="bPrompt">Next assignment</button>
+    <button class="btn" id="bLift" aria-pressed="false">Lift the code</button>
+    <button class="btn" id="bKey" aria-pressed="false">Key</button>
+    <span class="sep"></span>
+    <label><input type="checkbox" id="cbEx" checked> Example portraits</label>
+    <span id="ownerTools"></span>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="stage-wrap" id="stageWrap">
+    <div id="stage"><svg id="threads" aria-hidden="true"></svg></div>
+    <div class="empty-state" id="emptyState" hidden>
+      <strong>Waiting for the first portraits</strong>
+      <span>Participants open this page on their phone and choose "Make my portrait".</span>
+    </div>
+    <div class="banner" id="banner" hidden></div>
+    <div class="panel" id="keyPanel" hidden></div>
+  </div>
+</div>
+
+<script>
+/* ================= content ================= */
+const QUESTIONS = [
+  { id: "home",    layer: "the shape of the head",
+    text: "Where do you feel most at home?",
+    options: ["In a place", "With certain people", "In a language", "In a taste or a smell", "I'm still looking"] },
+  { id: "rhythm",  layer: "the colour",
+    text: "When does your day really begin?",
+    options: ["Before sunrise", "With the first coffee", "Late in the morning", "Only after dark"] },
+  { id: "move",    layer: "the hair",
+    text: "How do you usually move through your city?",
+    options: ["On foot", "By bike", "By tram, bus or train", "By car", "I rarely move around it"] },
+  { id: "keep",    layer: "the eyes",
+    text: "What would you never give up, even if it set you apart?",
+    options: ["My humour", "My convictions or faith", "My curiosity", "My roots", "My stubbornness"] },
+  { id: "connect", layer: "the mouth",
+    text: "When do you feel most connected to other people?",
+    options: ["Sharing a meal", "Making something together", "In silence, side by side", "In a lively discussion", "Laughing about nothing"] },
+  { id: "outside", layer: "the rings around you",
+    text: "When did you last feel like the outsider?",
+    options: ["This week", "This month", "This year", "Long ago", "I can't remember"] },
+  { id: "lang",    layer: "the freckles",
+    text: "How many languages pass through your head on an ordinary day?",
+    options: ["One", "Two", "Three", "Four or more"] },
+  { id: "carry",   layer: "the shoulders",
+    text: "Who or what do you carry with you these days?",
+    options: ["Family", "Students", "A community", "A cause", "Mostly myself, right now"] },
+];
+const PROMPTS = [
+  "Find someone who answered differently from you, but who would never give up the same thing.",
+  "Find someone you share something with that you would not have expected.",
+  "Find the portrait that looks least like yours. Ask about one layer.",
+  "Find someone whose answer challenges an assumption you hold.",
+  "Find someone whose perspective you would like to understand better.",
+  "The code is gone. With your partner: why do you end up in the same group? What could this layer mean?",
+];
+const COLORS = ["#F2C65A", "#E8925A", "#86C5A0", "#8189D0"];
+const INK = "#1C2130";
+const NSIGNS = 8;
+
+/* ================= portrait drawing ================= */
+let pid = 0;
+function signShape(i, cx, cy, r) {
+  const k = "fill=\"currentColor\"";
+  switch (i) {
+    case 0: return `<circle cx="${cx}" cy="${cy}" r="${r}" ${k}/>`;
+    case 1: return `<rect x="${cx-r}" y="${cy-r}" width="${2*r}" height="${2*r}" ${k}/>`;
+    case 2: return `<polygon points="${cx},${cy-r*1.1} ${cx+r*1.1},${cy+r*.9} ${cx-r*1.1},${cy+r*.9}" ${k}/>`;
+    case 3: return `<polygon points="${cx},${cy-r*1.2} ${cx+r},${cy} ${cx},${cy+r*1.2} ${cx-r},${cy}" ${k}/>`;
+    case 4: return `<path d="M${cx-r} ${cy}h${2*r}M${cx} ${cy-r}v${2*r}" stroke="currentColor" stroke-width="${r*.6}" fill="none"/>`;
+    case 5: return `<path d="M${cx-r} ${cy-r}l${2*r} ${2*r}M${cx+r} ${cy-r}l${-2*r} ${2*r}" stroke="currentColor" stroke-width="${r*.55}" fill="none"/>`;
+    case 6: return `<circle cx="${cx}" cy="${cy}" r="${r*.8}" stroke="currentColor" stroke-width="${r*.45}" fill="none"/>`;
+    default: {
+      let p = [];
+      for (let j = 0; j < 10; j++) { const a = -Math.PI/2 + j*Math.PI/5, rr = j%2 ? r*.5 : r*1.15; p.push((cx+rr*Math.cos(a)).toFixed(1)+","+(cy+rr*Math.sin(a)).toFixed(1)); }
+      return `<polygon points="${p.join(" ")}" ${k}/>`;
+    }
+  }
+}
+function hexPoints(cx, cy, r) {
+  let p = []; for (let j = 0; j < 6; j++) { const a = Math.PI/6 + j*Math.PI/3; p.push((cx+r*Math.cos(a)).toFixed(1)+","+(cy+r*Math.sin(a)).toFixed(1)); } return p.join(" ");
+}
+/* a = {answers:[8 ints or null], sign:int|null}; map = per-question permutation answer -> visual variant */
+function portraitSVG(a, map, opt = {}) {
+  const n = ++pid;
+  const v = (q) => (a.answers[q] == null ? null : map[q][a.answers[q]]);
+  const head = v(0), col = v(1), hair = v(2), eyes = v(3), mouth = v(4), rings = v(5), lang = v(6), body = v(7);
+  const fill = col == null ? "#C9CCC4" : COLORS[col];
+  const st = `stroke="${INK}" stroke-width="2"`;
+  let s = `<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${opt.label || "Portrait"}">`;
+  s += `<defs><pattern id="pS${n}" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="${fill}"/><rect width="2" height="5" fill="${INK}" opacity=".55"/></pattern>`;
+  s += `<pattern id="pD${n}" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="${fill}"/><circle cx="3" cy="3" r="1.2" fill="${INK}" opacity=".6"/></pattern></defs>`;
+  // shoulders: what you carry
+  if (body != null) {
+    const d = "M14 120 Q14 91 50 91 Q86 91 86 120 Z";
+    if (body === 0) s += `<path d="${d}" fill="${fill}" ${st}/>`;
+    if (body === 1) s += `<path d="${d}" fill="url(#pS${n})" ${st}/>`;
+    if (body === 2) s += `<path d="${d}" fill="url(#pD${n})" ${st}/>`;
+    if (body === 3) s += `<path d="${d}" fill="${fill}" ${st}/><path d="M24 110 l6.5 -6 l6.5 6 l6.5 -6 l6.5 6 l6.5 -6 l6.5 6 l6.5 -6 l6.5 6" fill="none" stroke="${INK}" stroke-width="2"/>`;
+    if (body === 4) s += `<path d="${d}" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"/>`;
+  }
+  // rings: how recently you felt the outsider
+  if (rings != null) {
+    const cnt = [4, 3, 2, 1, 0][rings];
+    for (let i = 0; i < cnt; i++) s += `<circle cx="50" cy="54" r="${33 + i*4.2}" fill="none" stroke="currentColor" stroke-width="1.2" opacity="${.55 - i*.1}"/>`;
+  }
+  // head: where you feel at home
+  if (head == null) s += `<circle cx="50" cy="54" r="27" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 4" opacity=".5"/>`;
+  else if (head === 0) s += `<circle cx="50" cy="54" r="27" fill="${fill}" ${st}/>`;
+  else if (head === 1) s += `<rect x="24" y="28" width="52" height="52" rx="13" fill="${fill}" ${st}/>`;
+  else if (head === 2) s += `<ellipse cx="50" cy="54" rx="22" ry="30" fill="${fill}" ${st}/>`;
+  else if (head === 3) s += `<polygon points="${hexPoints(50, 54, 29)}" fill="${fill}" ${st} stroke-linejoin="round"/>`;
+  else s += `<circle cx="50" cy="54" r="27" fill="${fill}" fill-opacity=".55" stroke="${INK}" stroke-width="2" stroke-dasharray="5 4"/>`;
+  if (head == null && col != null) s += `<circle cx="50" cy="54" r="25" fill="${fill}" opacity=".85"/>`;
+  // hair: how you move through the city
+  const hs = `fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"`;
+  if (hair === 0) s += `<path d="M42 27 V15 M50 26 V12 M58 27 V15" ${hs}/>`;
+  if (hair === 1) s += `<path d="M37 27 c0 -9 9 -9 9 -1 M46 25 c0 -9 9 -9 9 -1 M55 27 c0 -9 9 -9 9 -1" ${hs}/>`;
+  if (hair === 2) s += `<path d="M33 25 l6 -8 l6 8 l6 -8 l6 8 l6 -8 l6 8" ${hs}/>`;
+  if (hair === 3) s += `<path d="M27 37 Q50 8 73 37 Z" fill="${INK}"/>`;
+  // eyes: what you would never give up
+  let e = "";
+  if (eyes === 0) e = `<circle cx="40" cy="50" r="3.2" fill="${INK}"/><circle cx="60" cy="50" r="3.2" fill="${INK}"/>`;
+  if (eyes === 1) e = `<path d="M35 51 q5 -6 10 0 M55 51 q5 -6 10 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`;
+  if (eyes === 2) e = `<circle cx="40" cy="50" r="6" fill="#fff" stroke="${INK}" stroke-width="1.8"/><circle cx="41" cy="51" r="2.6" fill="${INK}"/><circle cx="60" cy="50" r="6" fill="#fff" stroke="${INK}" stroke-width="1.8"/><circle cx="61" cy="51" r="2.6" fill="${INK}"/>`;
+  if (eyes === 3) e = `<path d="M35.5 50 h9 M55.5 50 h9" stroke="${INK}" stroke-width="2.6" stroke-linecap="round"/>`;
+  if (eyes === 4) e = `<circle cx="40" cy="50" r="3.2" fill="${INK}"/><circle cx="60" cy="50" r="4" fill="none" stroke="${INK}" stroke-width="2"/>`;
+  if (e) s += `<g class="eyes" style="animation-delay:${opt.static ? 0 : -(Math.random()*6).toFixed(2)}s;${opt.static ? "animation:none" : ""}">${e}</g>`;
+  // mouth: when you feel connected
+  const ms = `fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"`;
+  if (mouth === 0) s += `<path d="M41 64 q9 9 18 0" ${ms}/>`;
+  if (mouth === 1) s += `<path d="M42 67 h16" ${ms}/>`;
+  if (mouth === 2) s += `<circle cx="50" cy="67" r="3.6" ${ms}/>`;
+  if (mouth === 3) s += `<path d="M39 67 q3 -4 5.5 0 t5.5 0 t5.5 0 t5.5 0" ${ms}/>`;
+  if (mouth === 4) s += `<path d="M40 63 h20 q0 11 -10 11 q-10 0 -10 -11 z" fill="${INK}"/>`;
+  // freckles: languages in your head
+  if (lang != null) for (let i = 0; i <= lang; i++) s += `<circle cx="${30.8 + i*3.9}" cy="59" r="1.5" fill="${INK}" opacity=".75"/>`;
+  // your secret sign
+  if (a.sign != null) s += `<g opacity=".9">${signShape(a.sign, 90, 12, 5)}</g>`;
+  return s + "</svg>";
+}
+function signSVG(i) { return `<svg viewBox="0 0 24 24" aria-hidden="true">${signShape(i, 12, 12, 7)}</svg>`; }
+
+/* ================= state ================= */
+const identity = QUESTIONS.map(q => q.options.map((_, i) => i));
+const S = {
+  answers: Array(QUESTIONS.length).fill(null), sign: null, step: 0, sent: false,
+  live: new Map(), showEx: true, mode: "together", sortQ: 0, selected: null,
+  lifted: false, map: identity, prompt: -1, key: false, dbState: "connecting",
+};
+let db = null, user = null, uid = null, isOwner = false;
+
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+const EXAMPLES = (() => {
+  const r = rng(42), out = [];
+  for (let i = 0; i < 18; i++) out.push({ key: "ex-" + i, example: true, answers: QUESTIONS.map(q => Math.floor(r() * q.options.length)), sign: Math.floor(r() * NSIGNS) });
+  return out;
+})();
+
+function validPortrait(d) {
+  if (!d || !Array.isArray(d.answers) || d.answers.length !== QUESTIONS.length) return null;
+  const ok = d.answers.every((x, i) => Number.isInteger(x) && x >= 0 && x < QUESTIONS[i].options.length);
+  const sign = Number.isInteger(d.sign) && d.sign >= 0 && d.sign < NSIGNS ? d.sign : null;
+  return ok ? { answers: d.answers.slice(), sign } : null;
+}
+
+try { const d = JSON.parse(localStorage.getItem("lou-draft") || "null"); if (d && Array.isArray(d.answers) && d.answers.length === QUESTIONS.length) { S.answers = d.answers; S.sign = d.sign ?? null; S.sent = !!d.sent; } } catch (e) {}
+function saveDraft() { try { localStorage.setItem("lou-draft", JSON.stringify({ answers: S.answers, sign: S.sign, sent: S.sent })); } catch (e) {} }
+
+/* ================= routing ================= */
+function route() {
+  const h = location.hash.replace("#", "");
+  const view = h === "portrait" ? "phone" : h === "screen" ? "screen" : "home";
+  for (const v of ["home", "phone", "screen"]) document.getElementById("v-" + v).hidden = v !== view;
+  if (view === "home") renderHome();
+  if (view === "phone") renderPhone();
+  if (view === "screen") { buildToolbar(); renderScreen(); }
+}
+addEventListener("hashchange", route);
+
+function renderHome() {
+  document.getElementById("homeFaces").innerHTML = EXAMPLES.slice(0, 9).map(p => portraitSVG(p, identity)).join("");
+}
+
+/* ================= phone ================= */
+const phone = document.getElementById("phone");
+function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function progressHTML(step) {
+  return `<div class="progress" aria-hidden="true">${QUESTIONS.map((_, i) => `<i class="${i < step ? "on" : ""}"></i>`).join("")}</div>`;
+}
+function renderPhone() {
+  const st = S.step, NQ = QUESTIONS.length;
+  const me = { answers: S.answers, sign: S.sign };
+  let h = "";
+  if (S.sent) {
+    h = `<div class="ph-top"><span>Layers of Us</span></div>
+      <div class="ph-portrait">${portraitSVG(me, identity, { label: "Your portrait" })}</div>
+      <h2 style="font-size:26px">Your portrait is on the shared screen</h2>
+      <p class="ph-text">Look for your sign in the top corner. Nobody else knows which one is yours, unless you tell them.</p>
+      <div class="ph-actions"><button class="btn" id="pWithdraw">Withdraw my portrait</button></div>
+      <div id="pMsg"></div>`;
+  } else if (st === 0) {
+    h = `<div class="ph-top"><span>Layers of Us</span></div>
+      <div class="ph-portrait">${portraitSVG({ answers: Array(NQ).fill(null), sign: null }, identity, { label: "An empty portrait" })}</div>
+      <h2 style="font-size:30px">Eight questions, one portrait</h2>
+      <p class="ph-text">Each answer adds a layer to a small portrait of you. There are no names and no right answers. You decide at the end whether to share it with the room, and you can withdraw it at any time.</p>
+      <div class="ph-actions"><button class="btn primary" id="pStart">Begin</button></div>`;
+  } else if (st <= NQ) {
+    const qi = st - 1, q = QUESTIONS[qi];
+    h = `<div class="ph-top"><button class="btn ghost" id="pBack">Back</button>${progressHTML(st)}<span>${st} / ${NQ}</span></div>
+      <div class="ph-portrait">${portraitSVG(me, identity, { label: "Your portrait so far" })}</div>
+      <div class="ph-q"><h2>${esc(q.text)}</h2><div class="layer">Your answer shapes ${esc(q.layer)}.</div></div>
+      <div class="options">${q.options.map((o, i) => `<button class="opt" data-i="${i}" aria-pressed="${S.answers[qi] === i}">${esc(o)}</button>`).join("")}</div>`;
+  } else if (st === NQ + 1) {
+    h = `<div class="ph-top"><button class="btn ghost" id="pBack">Back</button>${progressHTML(NQ)}<span>Last step</span></div>
+      <div class="ph-portrait">${portraitSVG(me, identity, { label: "Your portrait" })}</div>
+      <div class="ph-q"><h2>Pick a secret sign</h2><div class="layer">It appears in the corner of your portrait, so you can find yourself on the big screen.</div></div>
+      <div class="signs">${Array.from({ length: NSIGNS }, (_, i) => `<button data-s="${i}" aria-label="Sign ${i + 1}" aria-pressed="${S.sign === i}">${signSVG(i)}</button>`).join("")}</div>`;
+  } else {
+    const can = !!db && !!uid;
+    h = `<div class="ph-top"><button class="btn ghost" id="pBack">Back</button><span>Your portrait</span></div>
+      <div class="ph-portrait">${portraitSVG(me, identity, { label: "Your portrait" })}</div>
+      <h2 style="font-size:26px">This is you, in eight layers</h2>
+      <p class="ph-text">Share it and it joins the others on the shared screen, without your name.</p>
+      <div class="ph-actions"><button class="btn primary" id="pSend" ${can ? "" : "disabled"}>Share with the room</button><button class="btn" id="pRedo">Change answers</button></div>
+      <div id="pMsg">${can ? "" : `<div class="status">${S.dbState === "connecting" ? "Connecting to the shared screen…" : "Sharing works only when you are signed in to claude.ai with access to this page. Your portrait stays on this phone."}</div>`}</div>`;
+  }
+  phone.innerHTML = h;
+  const on = (id, f) => { const el = document.getElementById(id); if (el) el.onclick = f; };
+  on("pStart", () => { S.step = 1; renderPhone(); });
+  on("pBack", () => { S.step = Math.max(0, S.step - 1); renderPhone(); });
+  on("pRedo", () => { S.step = 1; renderPhone(); });
+  phone.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+    S.answers[S.step - 1] = +b.dataset.i; saveDraft(); renderPhone();
+    setTimeout(() => { S.step++; renderPhone(); scrollTo(0, 0); }, 280);
+  });
+  phone.querySelectorAll(".signs button").forEach(b => b.onclick = () => {
+    S.sign = +b.dataset.s; saveDraft(); renderPhone();
+    setTimeout(() => { S.step++; renderPhone(); }, 280);
+  });
+  on("pSend", sendPortrait);
+  on("pWithdraw", withdrawPortrait);
+}
+function msg(t) { const m = document.getElementById("pMsg"); if (m) m.innerHTML = `<div class="status">${esc(t)}</div>`; }
+async function sendPortrait() {
+  if (!db || !uid) return;
+  if (S.answers.some(x => x == null) || S.sign == null) { msg("One question is still open. Go back and answer it first."); return; }
+  const b = document.getElementById("pSend"); b.disabled = true; b.textContent = "Sharing…";
+  try {
+    await db.doc("portraits/" + uid).set({ answers: S.answers, sign: S.sign, createdAt: new Date().toISOString() });
+    S.sent = true; saveDraft(); renderPhone();
+  } catch (e) {
+    b.disabled = false; b.textContent = "Share with the room";
+    msg(e && e.code === "invalid_argument" ? "This account can view the page but not add to it. Ask the facilitator for Contributor access." : "Sharing failed. Check your connection and try again.");
+  }
+}
+async function withdrawPortrait() {
+  try { if (db && uid) await db.doc("portraits/" + uid).delete(); S.sent = false; S.step = NQ_REVIEW(); saveDraft(); renderPhone(); msg("Your portrait has been removed from the shared screen."); }
+  catch (e) { msg("Withdrawing failed. Try again in a moment."); }
+}
+function NQ_REVIEW() { return QUESTIONS.length + 2; }
+
+/* ================= screen ================= */
+const stage = document.getElementById("stage"), threads = document.getElementById("threads");
+const cards = new Map(); let toolbarBuilt = false, labels = [];
+function buildToolbar() {
+  if (toolbarBuilt) { updateToolbar(); return; }
+  toolbarBuilt = true;
+  document.getElementById("bTogether").onclick = () => { S.mode = "together"; S.selected = null; updateToolbar(); renderScreen(); };
+  document.getElementById("sortSel").onchange = (ev) => { S.mode = "sort"; S.sortQ = +ev.target.value; S.selected = null; updateToolbar(); renderScreen(); };
+  document.getElementById("bPrompt").onclick = () => { S.prompt = (S.prompt + 1) % PROMPTS.length; renderBanner(); };
+  document.getElementById("bLift").onclick = () => {
+    S.lifted = !S.lifted;
+    S.map = S.lifted ? QUESTIONS.map(q => shuffle(q.options.map((_, i) => i))) : identity;
+    for (const c of cards.values()) c.dataset.v = "";
+    if (S.lifted) S.key = false;
+    updateToolbar(); renderScreen();
+  };
+  document.getElementById("bKey").onclick = () => { S.key = !S.key; updateToolbar(); renderKey(); };
+  document.getElementById("cbEx").onchange = (ev) => { S.showEx = ev.target.checked; S.selected = null; renderScreen(); };
+  addEventListener("resize", () => { if (!document.getElementById("v-screen").hidden) layoutScreen(); });
+  updateToolbar();
+}
+function shuffle(a) {
+  let r; do { r = a.slice(); for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; } } while (r.every((x, i) => x === i));
+  return r;
+}
+function updateToolbar() {
+  const sel = document.getElementById("sortSel");
+  sel.innerHTML = `<option value="" disabled ${S.mode === "together" ? "selected" : ""}>Sort by…</option>` +
+    QUESTIONS.map((q, i) => `<option value="${i}" ${S.mode === "sort" && S.sortQ === i ? "selected" : ""}>${S.lifted ? "Layer " + (i + 1) : esc(q.text)}</option>`).join("");
+  document.getElementById("bTogether").setAttribute("aria-pressed", S.mode === "together");
+  document.getElementById("bLift").setAttribute("aria-pressed", S.lifted);
+  document.getElementById("bLift").textContent = S.lifted ? "Restore the code" : "Lift the code";
+  document.getElementById("bKey").setAttribute("aria-pressed", S.key);
+  document.getElementById("bKey").disabled = S.lifted;
+  const ot = document.getElementById("ownerTools");
+  if (isOwner && !ot.dataset.done) {
+    ot.dataset.done = "1";
+    ot.innerHTML = `<button class="btn ghost" id="bClear">Clear shared portraits</button>`;
+    document.getElementById("bClear").onclick = askClear;
+  }
+}
+function askClear() {
+  const ot = document.getElementById("ownerTools");
+  ot.innerHTML = `<label>Delete all ${S.live.size} shared portraits? <button class="btn primary" id="bYes">Delete</button><button class="btn" id="bNo">Keep</button></label>`;
+  document.getElementById("bNo").onclick = () => { ot.dataset.done = ""; updateToolbar(); };
+  document.getElementById("bYes").onclick = async () => {
+    for (const k of [...S.live.keys()]) { try { await db.doc("portraits/" + k).delete(); } catch (e) {} }
+    ot.dataset.done = ""; updateToolbar();
+  };
+}
+function visible() {
+  const list = [];
+  for (const [k, p] of S.live) list.push({ key: "live-" + k, ...p });
+  if (S.showEx) list.push(...EXAMPLES);
+  return list;
+}
+function renderScreen() {
+  const items = visible(), keys = new Set(items.map(p => p.key));
+  for (const [k, el] of cards) if (!keys.has(k)) { el.remove(); cards.delete(k); }
+  for (const p of items) {
+    let el = cards.get(p.key);
+    if (!el) {
+      el = document.createElement("button"); el.className = "card"; el.dataset.key = p.key;
+      el.onclick = () => { S.selected = S.selected === p.key ? null : p.key; drawThreads(); };
+      stage.appendChild(el); cards.set(p.key, el);
+      el.style.opacity = "0"; requestAnimationFrame(() => requestAnimationFrame(() => el.style.opacity = ""));
+    }
+    const sig = JSON.stringify([p.answers, p.sign, S.lifted, S.map]);
+    if (el.dataset.v !== sig) { el.dataset.v = sig; el.innerHTML = portraitSVG(p, S.map, { label: p.example ? "Example portrait" : "Participant portrait" }); }
+    el._p = p;
+  }
+  const nLive = S.live.size;
+  document.getElementById("count").textContent = `${nLive} shared` + (S.showEx ? ` + ${EXAMPLES.length} examples` : "");
+  document.getElementById("emptyState").hidden = items.length > 0;
+  layoutScreen(); renderBanner(); renderKey();
+}
+function layoutScreen() {
+  const W = stage.clientWidth, H = stage.clientHeight; if (!W || !H) return;
+  const items = [...cards.values()].map(el => el._p).sort((a, b) => a.key < b.key ? -1 : 1);
+  const R = 1.2, pad = 0.9;
+  labels.forEach(l => l.remove()); labels = [];
+  const pos = new Map();
+  if (S.mode === "together") {
+    const n = items.length; let best = { s: 0 };
+    for (let c = 1; c <= n; c++) { const r = Math.ceil(n / c), s = Math.min(W / c, H / (r * R)); if (s > best.s) best = { s, c, r }; }
+    const s = Math.min(best.s, 220), offX = (W - best.c * s) / 2, offY = (H - best.r * s * R) / 2;
+    items.forEach((p, i) => pos.set(p.key, { x: offX + (i % best.c) * s, y: offY + Math.floor(i / best.c) * s * R, s }));
+  } else {
+    const q = QUESTIONS[S.sortQ], k = q.options.length;
+    const groups = q.options.map((_, i) => items.filter(p => p.answers[S.sortQ] === i));
+    const labelH = 64, gapX = 18, minW = Math.min(150, (W - gapX * (k - 1)) / k);
+    const fits = (s) => {
+      const rows = Math.max(1, Math.floor((H - labelH) / (s * R)));
+      const widths = groups.map(g => Math.max(minW, Math.ceil(g.length / rows) * s));
+      return widths.reduce((a, b) => a + b, 0) + gapX * (k - 1) <= W ? { rows, widths } : null;
+    };
+    let lo = 10, hi = 200;
+    for (let it = 0; it < 30; it++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+    const s = lo, f = fits(s), extra = (W - f.widths.reduce((a, b) => a + b, 0) - gapX * (k - 1)) / k;
+    let x = 0;
+    groups.forEach((g, gi) => {
+      const w = f.widths[gi] + extra, cols = Math.max(1, Math.floor(w / s));
+      g.forEach((p, i) => pos.set(p.key, { x: x + (i % cols) * s, y: labelH + Math.floor(i / cols) * s * R, s }));
+      const lab = document.createElement("div");
+      lab.className = "glabel" + (g.length ? "" : " empty");
+      lab.style.cssText = `left:${x}px;top:0;width:${w}px`;
+      const name = S.lifted ? "Group " + String.fromCharCode(65 + gi) : esc(q.options[gi]);
+      lab.innerHTML = `${name}<small>${g.length ? g.length + (g.length === 1 ? " person" : " people") : "nobody"}</small>`;
+      stage.appendChild(lab); labels.push(lab);
+      x += w + gapX;
+    });
+  }
+  for (const [k, el] of cards) { const p = pos.get(k); if (!p) continue; el.style.width = (p.s * pad) + "px"; el.style.transform = `translate(${p.x + p.s * (1 - pad) / 2}px, ${p.y}px)`; el._pos = p; }
+  drawThreads();
+}
+function shared(a, b) { let n = 0; for (let i = 0; i < a.answers.length; i++) if (a.answers[i] === b.answers[i]) n++; return n; }
+function drawThreads() {
+  threads.innerHTML = "";
+  for (const el of cards.values()) { el.classList.remove("sel", "dim"); el.querySelector(".badge")?.remove(); }
+  const selEl = S.selected && cards.get(S.selected);
+  if (!selEl) { renderBanner(); return; }
+  const me = selEl._p, mp = selEl._pos; let linked = 0, maxS = 0, total = 0;
+  const center = (p) => [p.x + p.s / 2, p.y + p.s * 0.55];
+  const [x1, y1] = center(mp);
+  for (const el of cards.values()) {
+    if (el === selEl) continue; total++;
+    const n = shared(me, el._p); maxS = Math.max(maxS, n);
+    if (!n) { el.classList.add("dim"); continue; }
+    linked++;
+    const [x2, y2] = center(el._pos);
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    l.setAttribute("x1", x1); l.setAttribute("y1", y1); l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+    l.setAttribute("stroke-width", n * 1.4); l.setAttribute("opacity", 0.15 + n * 0.1);
+    threads.appendChild(l);
+    const b = document.createElement("span"); b.className = "badge"; b.textContent = n; el.appendChild(b);
+  }
+  selEl.classList.add("sel");
+  renderBanner({ linked, total, maxS });
+}
+function renderBanner(th) {
+  const b = document.getElementById("banner");
+  if (S.selected && cards.get(S.selected)) {
+    if (!th) { drawThreads(); return; }
+    b.innerHTML = `<p><span class="k">Threads</span>This portrait shares at least one answer with ${th.linked} of ${th.total} others. The closest match shares ${th.maxS} of ${QUESTIONS.length}.</p><button class="x" aria-label="Close threads">×</button>`;
+    b.hidden = false; b.querySelector(".x").onclick = () => { S.selected = null; drawThreads(); };
+  } else if (S.prompt >= 0) {
+    b.innerHTML = `<p><span class="k">Assignment ${S.prompt + 1} of ${PROMPTS.length}</span>${esc(PROMPTS[S.prompt])}</p><button class="x" aria-label="Hide assignment">×</button>`;
+    b.hidden = false; b.querySelector(".x").onclick = () => { S.prompt = -1; renderBanner(); };
+  } else b.hidden = true;
+}
+function renderKey() {
+  const k = document.getElementById("keyPanel");
+  if (!S.key || S.lifted) { k.hidden = true; return; }
+  const base = QUESTIONS.map((_, i) => (i === 5 ? 4 : 0));
+  k.innerHTML = `<h3>How to read a portrait</h3>` + QUESTIONS.map((q, qi) => `<div class="key-row"><b>${esc(q.layer[0].toUpperCase() + q.layer.slice(1))}</b><span class="q">${esc(q.text)}</span><div class="minis">` +
+    q.options.map((o, oi) => { const a = base.slice(); a[qi] = oi; return `<figure>${portraitSVG({ answers: a, sign: null }, identity, { static: true, label: o })}<figcaption>${esc(o)}</figcaption></figure>`; }).join("") +
+    `</div></div>`).join("") + `<div class="key-row"><b>The sign in the corner</b><span class="q">Chosen by each person, so they can find themselves.</span></div>`;
+  k.hidden = false;
+}
+
+/* ================= shared data ================= */
+(async () => {
+  if (!window.claude || !window.claude.use) { S.dbState = "absent"; refresh(); return; }
+  try {
+    db = await window.claude.use("db");
+    user = await window.claude.use("user");
+    uid = user ? await user.id() : null;
+    isOwner = user ? !!(await user.isOwner()) : false;
+  } catch (e) { db = null; }
+  if (!db) { S.dbState = "absent"; refresh(); return; }
+  S.dbState = "ok";
+  db.collection("portraits").onSnapshot(snap => {
+    const m = new Map();
+    for (const d of snap.docs) { const p = validPortrait(d.data()); if (p) m.set(d.id, p); }
+    S.live = m;
+    if (uid && !m.has(uid) && S.sent && !snap.metadata.fromCache) { S.sent = false; S.step = NQ_REVIEW(); saveDraft(); }
+    refresh();
+  }, () => { S.dbState = "absent"; refresh(); });
+  refresh();
+})();
+function refresh() {
+  if (!document.getElementById("v-phone").hidden) renderPhone();
+  if (!document.getElementById("v-screen").hidden) { updateToolbar(); renderScreen(); }
+}
+route();
+</script>
