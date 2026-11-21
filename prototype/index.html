@@ -76,6 +76,9 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .ph-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .ph-actions .btn { flex: 1 1 auto; padding: 14px 16px; }
 .ph-text { color: var(--muted); margin: 0; }
+.homelink { color: var(--muted); text-decoration: none; font-weight: 700; }
+.homelink:hover { color: var(--accent); }
+.toolbar .brand.homelink { color: var(--fg); }
 .status { font-size: 14px; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); }
 
 /* ---------- screen ---------- */
@@ -145,7 +148,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 
 <div id="v-screen" class="view" hidden>
   <div class="toolbar">
-    <span class="brand">Layers of Us</span>
+    <a class="brand homelink" href="#">Layers of Us</a><a class="btn ghost" href="#portrait" style="text-decoration:none">Make a portrait</a>
     <button class="btn" id="bTogether" aria-pressed="true">Together</button>
     <select id="sortSel" aria-label="Sort portraits by question"></select>
     <span class="sep"></span>
@@ -343,14 +346,14 @@ function renderPhone() {
   const me = { answers: S.answers, sign: S.sign };
   let h = "";
   if (S.sent) {
-    h = `<div class="ph-top"><span>Layers of Us</span></div>
+    h = `<div class="ph-top"><a class="homelink" href="#">Layers of Us</a><a class="homelink" href="#screen">Shared screen →</a></div>
       <div class="ph-portrait">${portraitSVG(me, identity, { label: "Your portrait" })}</div>
       <h2 style="font-size:26px">Your portrait is on the shared screen</h2>
       <p class="ph-text">Look for your sign in the top corner. Nobody else knows which one is yours, unless you tell them.</p>
       <div class="ph-actions"><button class="btn" id="pWithdraw">Withdraw my portrait</button></div>
       <div id="pMsg"></div>`;
   } else if (st === 0) {
-    h = `<div class="ph-top"><span>Layers of Us</span></div>
+    h = `<div class="ph-top"><a class="homelink" href="#">Layers of Us</a><a class="homelink" href="#screen">Shared screen →</a></div>
       <div class="ph-portrait">${portraitSVG({ answers: Array(NQ).fill(null), sign: null }, identity, { label: "An empty portrait" })}</div>
       <h2 style="font-size:30px">Eight questions, one portrait</h2>
       <p class="ph-text">Each answer adds a layer to a small portrait of you. There are no names and no right answers. You decide at the end whether to share it with the room, and you can withdraw it at any time.</p>
