@@ -1,7 +1,7 @@
 <title>Layers of Us</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=Patrick+Hand+SC&display=swap">
 <style>
 /* Layout: phone = one question per screen with the portrait growing on top; big screen = toolbar + full stage of portraits that regroup */
 :root {
@@ -129,8 +129,11 @@ a.btn { color: var(--fg); }
 .empty-state strong { font-family: var(--font-display); font-size: 26px; color: var(--fg); }
 
 /* blinking, after Nicky Case's faces */
-.eyes { transform-box: fill-box; transform-origin: center; animation: blink 6s infinite; }
-@keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 95.5% { transform: scaleY(.08); } }
+.eyes { transform-box: fill-box; transform-origin: center; animation: blink 4s infinite; }
+@keyframes blink { 0%, 90%, 100% { transform: scaleY(1); } 94% { transform: scaleY(.1); } }
+.hand { font-family: "Patrick Hand SC", "Comic Sans MS", cursive; }
+.name-in { font: inherit; font-size: 22px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); color: var(--fg); width: 100%; box-sizing: border-box; text-transform: uppercase; letter-spacing: .06em; }
+.name-in:focus { border-color: var(--accent); outline: none; }
 @media (prefers-reduced-motion: reduce) { .eyes { animation: none; } .card { transition: none; } }
 </style>
 
@@ -221,8 +224,7 @@ const PROMPTS = [
   "Find someone whose perspective you would like to understand better.",
   "The code is gone. With your partner: why do you end up in the same group? What could this layer mean?",
 ];
-const COLORS = ["#E3B04B", "#D9774F", "#7FA98A", "#6F86C2"];
-const INK = "#1C2130";
+const COLORS = ["#D49A2A", "#CB5C3E", "#4F9468", "#4D72B8"];
 const NSIGNS = 8;
 
 /* ================= portrait drawing ================= */
@@ -247,58 +249,94 @@ function signShape(i, cx, cy, r) {
 function hexPoints(cx, cy, r) {
   let p = []; for (let j = 0; j < 6; j++) { const a = Math.PI/6 + j*Math.PI/3; p.push((cx+r*Math.cos(a)).toFixed(1)+","+(cy+r*Math.sin(a)).toFixed(1)); } return p.join(" ");
 }
-/* a = {answers:[8 ints or null], sign:int|null}; map = per-question permutation answer -> visual variant.
-   A neutral head (after Nicky Case) with one mark per answer placed around it (after Giorgia Lupi). */
+/* a = {answers:[8 ints or null], name:string, seed:number}; map = per-question permutation answer -> visual variant.
+   A hand-drawn grey head with Nicky Case style eyes and a line mouth. Every answer adds a mark that grows
+   from, sits on, or hugs the head (after Giorgia Lupi's data portraits). */
+const fx = (x) => x.toFixed(1);
+function hashStr(t) { let h = 2166136261; for (const c of String(t)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) % 2147483646 + 1; }
+function smooth(pts, close) {
+  const P = close ? [pts[pts.length - 2], ...pts, pts[1]] : [pts[0], ...pts, pts[pts.length - 1]];
+  let d = `M${fx(pts[0][0])} ${fx(pts[0][1])}`;
+  for (let i = 1; i < P.length - 2; i++) {
+    const p0 = P[i - 1], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2];
+    d += ` C${fx(p1[0] + (p2[0] - p0[0]) / 6)} ${fx(p1[1] + (p2[1] - p0[1]) / 6)} ${fx(p2[0] - (p3[0] - p1[0]) / 6)} ${fx(p2[1] - (p3[1] - p1[1]) / 6)} ${fx(p2[0])} ${fx(p2[1])}`;
+  }
+  return d + (close ? "Z" : "");
+}
+/* a wobbly circle or arc, like a pen line: radius drifts slowly, angles in radians (y down) */
+function wob(r, cx, cy, rx, ry, a0, a1, amp, n = 28) {
+  const ph = [r() * 6.3, r() * 6.3, r() * 6.3], pts = [];
+  for (let i = 0; i <= n; i++) {
+    const a = a0 + (a1 - a0) * i / n, k = 1 + amp * (Math.sin(a * 2 + ph[0]) * .55 + Math.sin(a * 3 + ph[1]) * .3 + Math.sin(a * 5 + ph[2]) * .15);
+    pts.push([cx + rx * k * Math.cos(a), cy + ry * k * Math.sin(a)]);
+  }
+  return pts;
+}
+function jit(r, pts, amp) { return pts.map(p => [p[0] + (r() - .5) * amp, p[1] + (r() - .5) * amp]); }
+function poly(pts) { return "M" + pts.map(p => fx(p[0]) + " " + fx(p[1])).join(" L") + "Z"; }
+
+const HX = 60, HY = 56, HR = 24, INK = "#2B2B2E", GREY = "#D3D2CC";
 function portraitSVG(a, map, opt = {}) {
+  const r = rng(a.seed || 7), u = ++pid;
   const v = (q) => (a.answers[q] == null ? null : map[q][a.answers[q]]);
   const top = v(0), col = v(1), ground = v(2), seed = v(3), halo = v(4), rays = v(5), dots = v(6), edge = v(7);
-  const fill = col == null ? "none" : COLORS[col];
-  const C = "currentColor", cx = 60, cy = 60, r = 21;
-  const ln = `fill="none" stroke="${C}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"`;
-  let s = `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${opt.label || "Portrait"}">`;
-  // shape behind: when you feel connected
+  const mc = col == null ? "currentColor" : COLORS[col];
+  const pen = (w = 1.9, c = mc) => `fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+  const at = (ang, rad) => [HX + rad * Math.cos(ang), HY + rad * Math.sin(ang)];
+  let s = `<svg viewBox="0 0 120 112" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(opt.label || "Portrait")}">`;
+
+  // the shape behind: when you feel connected (a soft wash the head rests on)
   if (halo != null && halo !== 4) {
-    const hf = `fill="${col == null ? C : COLORS[col]}" opacity=".18"`;
-    if (halo === 0) s += `<circle cx="${cx}" cy="${cy}" r="33" ${hf}/>`;
-    if (halo === 1) s += `<rect x="${cx-29}" y="${cy-29}" width="58" height="58" rx="4" ${hf}/>`;
-    if (halo === 2) s += `<polygon points="${cx},${cy-38} ${cx+38},${cy} ${cx},${cy+38} ${cx-38},${cy}" ${hf}/>`;
-    if (halo === 3) s += `<ellipse cx="${cx}" cy="${cy}" rx="40" ry="26" ${hf}/>`;
+    const wash = `fill="${mc}" opacity=".2"`;
+    if (halo === 0) s += `<path d="${smooth(wob(r, HX + 7, HY + 5, 29, 29, 0, Math.PI * 2, .05), true)}" ${wash}/>`;
+    if (halo === 1) s += `<path d="${poly(jit(r, [[HX - 30, HY - 27], [HX + 29, HY - 30], [HX + 31, HY + 28], [HX - 28, HY + 30]], 4))}" ${wash} stroke-linejoin="round"/>`;
+    if (halo === 2) s += `<path d="${poly(jit(r, [[HX, HY - 40], [HX + 38, HY], [HX, HY + 38], [HX - 39, HY]], 4))}" ${wash}/>`;
+    if (halo === 3) s += `<path d="${smooth(wob(r, HX, HY + 2, 43, 24, 0, Math.PI * 2, .05), true)}" ${wash}/>`;
   }
-  // mark above the head: where you feel at home
-  if (top === 0) s += `<path d="M43 30 C48 16 54 36 60 24 S70 14 77 27" ${ln}/>`;
-  if (top === 1) s += `<path d="M43 31 l5 -11 l4 9 l5 -12 l4 11 l5 -10 l5 9 l4 -6" ${ln}/>`;
-  if (top === 2) s += `<path d="M60 35 V14" ${ln}/>`;
-  if (top === 3) s += `<path d="M45 34 Q60 12 75 34" ${ln}/>`;
-  if (top === 4) s += `<path d="M41 34 Q51 17 61 34 M59 34 Q69 17 79 34" ${ln}/>`;
-  // the head: neutral, its outline says what you carry
-  const hs = (w, extra = "") => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${C}" stroke-width="${w}" ${extra}/>`;
-  if (edge == null) s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${C}" stroke-width="1.2" stroke-dasharray="1.5 3.5" opacity="${col == null ? .5 : 1}"/>`;
-  else if (edge === 0) s += hs(1.8);
-  else if (edge === 1) s += hs(1.4) + `<circle cx="${cx}" cy="${cy}" r="${r+3.5}" fill="none" stroke="${C}" stroke-width="1"/>`;
-  else if (edge === 2) s += hs(1.8, `stroke-dasharray="4 3"`);
-  else if (edge === 3) s += hs(3.6);
-  else s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/><path d="M${cx+r*Math.cos(2.2)} ${cy-r*Math.sin(2.2)} A${r} ${r} 0 1 0 ${cx+r*Math.cos(1.0)} ${cy-r*Math.sin(1.0)}" ${ln}/>`;
-  // eyes: always the same, they only blink
-  s += `<g class="eyes" style="${opt.static ? "animation:none" : "animation-delay:" + (-(Math.random() * 6)).toFixed(2) + "s"}"><circle cx="${cx-7}" cy="${cy-1}" r="2" fill="${C}"/><circle cx="${cx+7}" cy="${cy-1}" r="2" fill="${C}"/></g>`;
-  // dots on the left: languages in your head
-  if (dots != null) { const n = dots + 1; for (let i = 0; i < n; i++) s += `<circle cx="26" cy="${cy - (n-1)*4.5 + i*9}" r="2.6" fill="${C}"/>`; }
-  // rays on the right: how recently you felt the outsider
-  if (rays != null) { const n = [4, 3, 2, 1, 0][rays]; for (let i = 0; i < n; i++) { const ang = (n === 1 ? 0 : -0.55 + i * 1.1 / (n - 1)); s += `<path d="M${(cx + 27*Math.cos(ang)).toFixed(1)} ${(cy + 27*Math.sin(ang)).toFixed(1)} L${(cx + 36*Math.cos(ang)).toFixed(1)} ${(cy + 36*Math.sin(ang)).toFixed(1)}" ${ln}/>`; } }
-  // line beneath: how you move through the city
-  if (ground === 0) for (let x = 36; x <= 84; x += 6) s += `<circle cx="${x}" cy="103" r="1.3" fill="${C}"/>`;
-  if (ground === 1) s += `<path d="M34 103 q6.5 -6 13 0 t13 0 t13 0 t13 0" ${ln}/>`;
-  if (ground === 2) s += `<path d="M34 100 H86 M34 106 H86" ${ln}/>`;
-  if (ground === 3) s += `<path d="M34 103 H86" fill="none" stroke="${C}" stroke-width="3.2" stroke-linecap="round"/>`;
-  if (ground === 4) s += `<path d="M54 103 H66" ${ln}/>`;
-  // small seed, upper left: what you would never give up
-  const sx = 24, sy = 22;
-  if (seed === 0) s += `<circle cx="${sx}" cy="${sy}" r="4.5" ${ln}/>`;
-  if (seed === 1) s += `<polygon points="${sx},${sy-5} ${sx+5},${sy+4} ${sx-5},${sy+4}" fill="${C}"/>`;
-  if (seed === 2) s += `<rect x="${sx-4}" y="${sy-4}" width="8" height="8" ${ln}/>`;
-  if (seed === 3) s += `<polygon points="${sx},${sy-5.5} ${sx+4.5},${sy} ${sx},${sy+5.5} ${sx-4.5},${sy}" fill="${C}"/>`;
-  if (seed === 4) s += `<path d="M${sx-4} ${sy+4} L${sx+4} ${sy-4}" ${ln}/>`;
-  // your secret sign, lower right, in the accent colour
-  if (a.sign != null) s += `<g style="color:var(--accent)">${signShape(a.sign, 104, 110, 3.6)}</g>`;
+  // the mark that grows from the top of the head: where you feel at home
+  const T = HY - HR;
+  if (top === 0) s += `<path d="${smooth(jit(r, [[HX, T + 1], [HX - 5, T - 6], [HX + 3, T - 11], [HX - 4, T - 16], [HX + 5, T - 21], [HX + 1, T - 26]], 1.5))}" ${pen()}/>`;
+  if (top === 1) s += `<path d="M${jit(r, [[HX, T + 1], [HX - 6, T - 5], [HX + 5, T - 9], [HX - 5, T - 14], [HX + 6, T - 18], [HX - 2, T - 24]], 1.4).map(p => fx(p[0]) + " " + fx(p[1])).join(" L")}" ${pen()}/>`;
+  if (top === 2) s += `<path d="${smooth(jit(r, [[HX, T + 1], [HX + .5, T - 8], [HX - .5, T - 16], [HX + .3, T - 24]], 1.2))}" ${pen()}/>`;
+  if (top === 3) s += `<path d="${smooth(jit(r, [at(-2.0, HR - .5), [HX - 7, T - 13], [HX + 1, T - 18], [HX + 8, T - 12], at(-1.14, HR - .5)], 1.2))}" ${pen()}/>`;
+  if (top === 4) s += `<path d="${smooth(jit(r, [at(-2.25, HR - .5), [HX - 13, T - 10], [HX - 5, T - 13], at(-1.62, HR - .5)], 1))}" ${pen()}/><path d="${smooth(jit(r, [at(-1.52, HR - .5), [HX + 5, T - 13], [HX + 13, T - 10], at(-0.89, HR - .5)], 1))}" ${pen()}/>`;
+  // the head itself: always grey, its outline says what you carry
+  s += `<path d="${smooth(wob(r, HX, HY, HR, HR, 0, Math.PI * 2, .035), true)}" fill="${GREY}"/>`;
+  const a0 = r() * 6.3, ring = (amp, w, extra = "", from = a0, to = a0 + Math.PI * 2 + .35) => `<path d="${smooth(wob(r, HX, HY, HR, HR, from, to, amp, 34))}" ${pen(w, INK)} ${extra}/>`;
+  if (edge == null || edge === 0) s += ring(.035, 1.8, edge == null ? `opacity=".55"` : "");
+  if (edge === 1) s += ring(.035, 1.5) + ring(.05, 1.1);
+  if (edge === 2) s += ring(.035, 1.9, `stroke-dasharray="4.5 3.5"`);
+  if (edge === 3) s += ring(.03, 3.6);
+  if (edge === 4) s += ring(.035, 1.8, "", a0, a0 + Math.PI * 1.55);
+  // the face: eyes that blink and look around, a line for a mouth
+  const ey = HY - 2, eo = 7.5, blink = (2.4 + r() * 2.8).toFixed(2);
+  const eye = (x) => `<path d="${smooth(wob(r, x, ey, 2.1, 2.5, 0, Math.PI * 2, .08, 10), true)}" fill="${INK}"/>`;
+  s += `<g class="look" data-y="${ey}"><g class="eyes" style="${opt.static ? "animation:none" : `animation-duration:${blink}s;animation-delay:-${(r() * 3).toFixed(2)}s`}">${eye(HX - eo)}${eye(HX + eo)}</g></g>`;
+  s += `<path d="${smooth(jit(r, [[HX - 5, HY + 9], [HX, HY + 9.4], [HX + 5, HY + 8.8]], .8))}" ${pen(1.8, INK)}/>`;
+  // a small sign inside the head: what you would never give up
+  const sx = HX - 11, sy = HY - 12;
+  if (seed === 0) s += `<path d="${smooth(wob(r, sx, sy, 2.8, 2.8, 0, Math.PI * 2.1, .1, 12))}" ${pen(1.5)}/>`;
+  if (seed === 1) s += `<path d="${poly(jit(r, [[sx, sy - 3.5], [sx + 3.5, sy + 2.8], [sx - 3.5, sy + 2.8]], .8))}" fill="${mc}"/>`;
+  if (seed === 2) s += `<path d="${poly(jit(r, [[sx - 3, sy - 3], [sx + 3, sy - 3], [sx + 3, sy + 3], [sx - 3, sy + 3]], .8))}" ${pen(1.5)}/>`;
+  if (seed === 3) s += `<path d="${poly(jit(r, [[sx, sy - 4], [sx + 3.2, sy], [sx, sy + 4], [sx - 3.2, sy]], .7))}" fill="${mc}"/>`;
+  if (seed === 4) s += `<path d="${smooth(jit(r, [[sx - 3, sy + 3], [sx, sy], [sx + 3, sy - 3]], .7))}" ${pen(1.7)}/>`;
+  // rays from the right edge: how recently you felt the outsider
+  if (rays != null) { const n = [4, 3, 2, 1, 0][rays]; for (let i = 0; i < n; i++) { const g = n === 1 ? 0 : -.62 + i * 1.24 / (n - 1); s += `<path d="${smooth(jit(r, [at(g, HR + 1), at(g + .03, HR + 6), at(g, HR + 11)], 1))}" ${pen(1.9)}/>`; } }
+  // dots sitting on the left edge: languages in your head
+  if (dots != null) { const n = dots + 1; for (let i = 0; i < n; i++) { const g = Math.PI + (i - (n - 1) / 2) * .36; const [x, y] = at(g, HR); s += `<path d="${smooth(wob(r, x, y, 2.9, 2.9, 0, Math.PI * 2, .1, 10), true)}" fill="${mc}"/>`; } }
+  // a line cradling the head from below: how you move through the city
+  const cr = HR + 4.5, c0 = Math.PI * .22, c1 = Math.PI * .78;
+  if (ground === 0) for (let i = 0; i <= 8; i++) { const [x, y] = at(c0 + (c1 - c0) * i / 8, cr); s += `<circle cx="${fx(x + (r() - .5) * .6)}" cy="${fx(y)}" r="1.25" fill="${mc}"/>`; }
+  if (ground === 1) { const pts = []; for (let i = 0; i <= 24; i++) { const g = c0 + (c1 - c0) * i / 24; pts.push(at(g, cr + Math.sin(i * Math.PI / 3) * 1.8)); } s += `<path d="${smooth(pts)}" ${pen(1.7)}/>`; }
+  if (ground === 2) s += `<path d="${smooth(wob(r, HX, HY, cr - 1.2, cr - 1.2, c0, c1, .02, 14))}" ${pen(1.5)}/><path d="${smooth(wob(r, HX, HY, cr + 2.6, cr + 2.6, c0 + .04, c1 - .04, .02, 14))}" ${pen(1.5)}/>`;
+  if (ground === 3) s += `<path d="${smooth(wob(r, HX, HY, cr, cr, c0, c1, .02, 14))}" ${pen(3.4)}/>`;
+  if (ground === 4) s += `<path d="${smooth(wob(r, HX, HY, cr, cr, Math.PI * .43, Math.PI * .57, .02, 6))}" ${pen(1.9)}/>`;
+  // the name, hand-lettered along the lower arc
+  if (a.name) {
+    const nr = HR + 17, nm = esc(a.name.toUpperCase());
+    s += `<path id="nm${u}" d="M${fx(HX - nr)} ${HY} A${nr} ${nr} 0 0 0 ${fx(HX + nr)} ${HY}" fill="none"/>`;
+    s += `<text class="hand" font-size="${a.name.length > 9 ? 8 : 9.5}" fill="currentColor" letter-spacing="1"><textPath href="#nm${u}" startOffset="50%" text-anchor="middle">${nm}</textPath></text>`;
+  }
   return s + "</svg>";
 }
 function signSVG(i) { return `<svg viewBox="0 0 24 24" aria-hidden="true">${signShape(i, 12, 12, 7)}</svg>`; }
@@ -306,7 +344,7 @@ function signSVG(i) { return `<svg viewBox="0 0 24 24" aria-hidden="true">${sign
 /* ================= state ================= */
 const identity = QUESTIONS.map(q => q.options.map((_, i) => i));
 const S = {
-  answers: Array(QUESTIONS.length).fill(null), sign: null, step: 0, sent: false,
+  answers: Array(QUESTIONS.length).fill(null), name: "", step: 0, sent: false,
   live: new Map(), showEx: true, mode: "together", sortQ: 0, selected: null,
   lifted: false, map: identity, prompt: -1, key: false, dbState: "connecting",
 };
@@ -315,19 +353,20 @@ let db = null, user = null, uid = null, isOwner = false;
 function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
 const EXAMPLES = (() => {
   const r = rng(42), out = [];
-  for (let i = 0; i < 18; i++) out.push({ key: "ex-" + i, example: true, answers: QUESTIONS.map(q => Math.floor(r() * q.options.length)), sign: Math.floor(r() * NSIGNS) });
+  const names = ["Amina","Jonas","Sofia","Youssef","Marie","Tomasz","Ines","Kwame","Lotte","Mehmet","Ana","Pieter","Leila","Sam","Noor","Elif","Bram","Zainab"];
+  for (let i = 0; i < 18; i++) out.push({ key: "ex-" + i, example: true, answers: QUESTIONS.map(q => Math.floor(r() * q.options.length)), name: names[i], seed: hashStr(names[i] + i) });
   return out;
 })();
 
 function validPortrait(d) {
   if (!d || !Array.isArray(d.answers) || d.answers.length !== QUESTIONS.length) return null;
   const ok = d.answers.every((x, i) => Number.isInteger(x) && x >= 0 && x < QUESTIONS[i].options.length);
-  const sign = Number.isInteger(d.sign) && d.sign >= 0 && d.sign < NSIGNS ? d.sign : null;
-  return ok ? { answers: d.answers.slice(), sign } : null;
+  const name = typeof d.name === "string" ? d.name.replace(/[<>&"]/g, "").slice(0, 12) : "";
+  return ok ? { answers: d.answers.slice(), name } : null;
 }
 
-try { const d = JSON.parse(localStorage.getItem("lou-draft") || "null"); if (d && Array.isArray(d.answers) && d.answers.length === QUESTIONS.length) { S.answers = d.answers; S.sign = d.sign ?? null; S.sent = !!d.sent; } } catch (e) {}
-function saveDraft() { try { localStorage.setItem("lou-draft", JSON.stringify({ answers: S.answers, sign: S.sign, sent: S.sent })); } catch (e) {} }
+try { const d = JSON.parse(localStorage.getItem("lou-draft") || "null"); if (d && Array.isArray(d.answers) && d.answers.length === QUESTIONS.length) { S.answers = d.answers; S.name = typeof d.name === "string" ? d.name : ""; S.sent = !!d.sent; } } catch (e) {}
+function saveDraft() { try { localStorage.setItem("lou-draft", JSON.stringify({ answers: S.answers, name: S.name, sent: S.sent })); } catch (e) {} }
 
 /* ================= routing ================= */
 function route() {
@@ -353,38 +392,40 @@ function progressHTML(step) {
 }
 function renderPhone() {
   const st = S.step, NQ = QUESTIONS.length;
-  const me = { answers: S.answers, sign: S.sign };
+  const me = { answers: S.answers, name: S.name, seed: hashStr(S.name || "me") };
+  const top = `<div class="ph-top"><a class="homelink" href="#">Layers of Us</a><a class="homelink" href="#screen">Shared screen →</a></div>`;
   let h = "";
   if (S.sent) {
-    h = `<div class="ph-top"><a class="homelink" href="#">Layers of Us</a><a class="homelink" href="#screen">Shared screen →</a></div>
+    h = `${top}
       <div class="ph-portrait">${portraitSVG(me, identity, { label: "Your portrait" })}</div>
       <h2 style="font-size:26px">Your portrait is on the shared screen</h2>
-      <p class="ph-text">Look for your sign in the lower corner. Nobody else knows which one is yours, unless you tell them.</p>
+      <p class="ph-text">Look for your name along the edge of your portrait.</p>
       <div class="ph-actions"><button class="btn" id="pWithdraw">Withdraw my portrait</button></div>
       <div id="pMsg"></div>`;
   } else if (st === 0) {
-    h = `<div class="ph-top"><a class="homelink" href="#">Layers of Us</a><a class="homelink" href="#screen">Shared screen →</a></div>
-      <div class="ph-portrait">${portraitSVG({ answers: Array(NQ).fill(null), sign: null }, identity, { label: "An empty portrait" })}</div>
+    h = `${top}
+      <div class="ph-portrait">${portraitSVG({ answers: Array(NQ).fill(null), name: "", seed: 3 }, identity, { label: "An empty portrait" })}</div>
       <h2 style="font-size:30px">Eight questions, one portrait</h2>
-      <p class="ph-text">Each answer adds a layer to a small portrait of you. There are no names and no right answers. You decide at the end whether to share it with the room, and you can withdraw it at any time.</p>
+      <p class="ph-text">Each answer adds a mark to a small hand-drawn portrait of you. There are no right answers. You decide at the end whether to share it with the room, and you can withdraw it at any time.</p>
       <div class="ph-actions"><button class="btn primary" id="pStart">Begin</button></div>`;
-  } else if (st <= NQ) {
-    const qi = st - 1, q = QUESTIONS[qi];
-    h = `<div class="ph-top"><button class="btn ghost" id="pBack">Back</button>${progressHTML(st)}<span>${st} / ${NQ}</span></div>
+  } else if (st === 1) {
+    h = `<div class="ph-top"><button class="btn ghost" id="pBack">Back</button>${progressHTML(0)}<span>Your name</span></div>
+      <div class="ph-portrait">${portraitSVG(me, identity, { label: "Your portrait so far" })}</div>
+      <div class="ph-q"><h2>What should we call you?</h2><div class="layer">Your first name or a nickname. It is written along the edge of your portrait.</div></div>
+      <input class="name-in" id="pName" type="text" maxlength="12" autocomplete="off" autocapitalize="characters" value="${esc(S.name)}" placeholder="Your name">
+      <div class="ph-actions"><button class="btn primary" id="pNext" ${S.name.trim() ? "" : "disabled"}>Next</button></div>`;
+  } else if (st <= NQ + 1) {
+    const qi = st - 2, q = QUESTIONS[qi];
+    h = `<div class="ph-top"><button class="btn ghost" id="pBack">Back</button>${progressHTML(qi + 1)}<span>${qi + 1} / ${NQ}</span></div>
       <div class="ph-portrait">${portraitSVG(me, identity, { label: "Your portrait so far" })}</div>
       <div class="ph-q"><h2>${esc(q.text)}</h2><div class="layer">Your answer shapes ${esc(q.layer)}.</div></div>
       <div class="options">${q.options.map((o, i) => `<button class="opt" data-i="${i}" aria-pressed="${S.answers[qi] === i}">${esc(o)}</button>`).join("")}</div>`;
-  } else if (st === NQ + 1) {
-    h = `<div class="ph-top"><button class="btn ghost" id="pBack">Back</button>${progressHTML(NQ)}<span>Last step</span></div>
-      <div class="ph-portrait">${portraitSVG(me, identity, { label: "Your portrait" })}</div>
-      <div class="ph-q"><h2>Pick a secret sign</h2><div class="layer">It appears in the lower corner of your portrait, so you can find yourself on the big screen.</div></div>
-      <div class="signs">${Array.from({ length: NSIGNS }, (_, i) => `<button data-s="${i}" aria-label="Sign ${i + 1}" aria-pressed="${S.sign === i}">${signSVG(i)}</button>`).join("")}</div>`;
   } else {
     const can = !!db && !!uid;
     h = `<div class="ph-top"><button class="btn ghost" id="pBack">Back</button><span>Your portrait</span></div>
       <div class="ph-portrait">${portraitSVG(me, identity, { label: "Your portrait" })}</div>
       <h2 style="font-size:26px">This is you, in eight layers</h2>
-      <p class="ph-text">Share it and it joins the others on the shared screen, without your name.</p>
+      <p class="ph-text">Share it and it joins the others on the shared screen, with the name you chose.</p>
       <div class="ph-actions"><button class="btn primary" id="pSend" ${can ? "" : "disabled"}>Share with the room</button><button class="btn" id="pRedo">Change answers</button></div>
       <div id="pMsg">${can ? "" : `<div class="status">${S.dbState === "connecting" ? "Connecting to the shared screen…" : "Sharing works only when you are signed in to claude.ai with access to this page. Your portrait stays on this phone."}</div>`}</div>`;
   }
@@ -393,13 +434,19 @@ function renderPhone() {
   on("pStart", () => { S.step = 1; renderPhone(); });
   on("pBack", () => { S.step = Math.max(0, S.step - 1); renderPhone(); });
   on("pRedo", () => { S.step = 1; renderPhone(); });
+  on("pNext", () => { if (S.name.trim()) { S.step = 2; renderPhone(); } });
+  const ni = document.getElementById("pName");
+  if (ni) {
+    ni.oninput = () => {
+      S.name = ni.value.replace(/[<>&"]/g, "").slice(0, 12); saveDraft();
+      document.querySelector(".ph-portrait").innerHTML = portraitSVG({ answers: S.answers, name: S.name, seed: hashStr(S.name || "me") }, identity, { label: "Your portrait so far" });
+      document.getElementById("pNext").disabled = !S.name.trim();
+    };
+    ni.onkeydown = (ev) => { if (ev.key === "Enter" && S.name.trim()) { S.step = 2; renderPhone(); } };
+  }
   phone.querySelectorAll(".opt").forEach(b => b.onclick = () => {
-    S.answers[S.step - 1] = +b.dataset.i; saveDraft(); renderPhone();
+    S.answers[S.step - 2] = +b.dataset.i; saveDraft(); renderPhone();
     setTimeout(() => { S.step++; renderPhone(); scrollTo(0, 0); }, 280);
-  });
-  phone.querySelectorAll(".signs button").forEach(b => b.onclick = () => {
-    S.sign = +b.dataset.s; saveDraft(); renderPhone();
-    setTimeout(() => { S.step++; renderPhone(); }, 280);
   });
   on("pSend", sendPortrait);
   on("pWithdraw", withdrawPortrait);
@@ -407,10 +454,10 @@ function renderPhone() {
 function msg(t) { const m = document.getElementById("pMsg"); if (m) m.innerHTML = `<div class="status">${esc(t)}</div>`; }
 async function sendPortrait() {
   if (!db || !uid) return;
-  if (S.answers.some(x => x == null) || S.sign == null) { msg("One question is still open. Go back and answer it first."); return; }
+  if (S.answers.some(x => x == null) || !S.name.trim()) { msg("One question is still open. Go back and answer it first."); return; }
   const b = document.getElementById("pSend"); b.disabled = true; b.textContent = "Sharing…";
   try {
-    await db.doc("portraits/" + uid).set({ answers: S.answers, sign: S.sign, createdAt: new Date().toISOString() });
+    await db.doc("portraits/" + uid).set({ answers: S.answers, name: S.name.trim(), createdAt: new Date().toISOString() });
     S.sent = true; saveDraft(); renderPhone();
   } catch (e) {
     b.disabled = false; b.textContent = "Share with the room";
@@ -476,7 +523,7 @@ function askClear() {
 }
 function visible() {
   const list = [];
-  for (const [k, p] of S.live) list.push({ key: "live-" + k, ...p });
+  for (const [k, p] of S.live) list.push({ key: "live-" + k, seed: hashStr(k), ...p });
   if (S.showEx) list.push(...EXAMPLES);
   return list;
 }
@@ -491,7 +538,7 @@ function renderScreen() {
       stage.appendChild(el); cards.set(p.key, el);
       el.style.opacity = "0"; requestAnimationFrame(() => requestAnimationFrame(() => el.style.opacity = ""));
     }
-    const sig = JSON.stringify([p.answers, p.sign, S.lifted, S.map]);
+    const sig = JSON.stringify([p.answers, p.name, S.lifted, S.map]);
     if (el.dataset.v !== sig) { el.dataset.v = sig; el.innerHTML = portraitSVG(p, S.map, { label: p.example ? "Example portrait" : "Participant portrait" }); }
     el._p = p;
   }
@@ -503,7 +550,7 @@ function renderScreen() {
 function layoutScreen() {
   const W = stage.clientWidth, H = stage.clientHeight; if (!W || !H) return;
   const items = [...cards.values()].map(el => el._p).sort((a, b) => a.key < b.key ? -1 : 1);
-  const R = 1.0, pad = 0.9;
+  const R = 112 / 120, pad = 0.94;
   labels.forEach(l => l.remove()); labels = [];
   const pos = new Map();
   if (S.mode === "together") {
@@ -580,7 +627,7 @@ function renderKey() {
   const base = QUESTIONS.map((_, i) => (i === 7 ? 0 : null));
   k.innerHTML = `<h3>How to read a portrait</h3>` + QUESTIONS.map((q, qi) => `<div class="key-row"><b>${esc(q.layer[0].toUpperCase() + q.layer.slice(1))}</b><span class="q">${esc(q.text)}</span><div class="minis">` +
     q.options.map((o, oi) => { const a = base.slice(); a[qi] = oi; return `<figure>${portraitSVG({ answers: a, sign: null }, identity, { static: true, label: o })}<figcaption>${esc(o)}</figcaption></figure>`; }).join("") +
-    `</div></div>`).join("") + `<div class="key-row"><b>The sign in the corner</b><span class="q">Chosen by each person, so they can find themselves.</span></div>`;
+    `</div></div>`).join("") + `<div class="key-row"><b>The name along the edge</b><span class="q">Chosen by each person: a first name or a nickname.</span></div>`;
   k.hidden = false;
 }
 
@@ -607,6 +654,21 @@ function renderKey() {
 function refresh() {
   if (!document.getElementById("v-phone").hidden) renderPhone();
   if (!document.getElementById("v-screen").hidden) { updateToolbar(); renderScreen(); }
+}
+/* ================= eyes follow the pointer ================= */
+let lookX = null, lookY = null, lookQueued = false;
+function updateLook() {
+  lookQueued = false;
+  for (const g of document.querySelectorAll(".look")) {
+    const svg = g.ownerSVGElement; if (!svg) continue;
+    const b = svg.getBoundingClientRect(); if (!b.width) continue;
+    const ex = b.left + b.width * (HX / 120), ey = b.top + b.height * (+g.dataset.y / 112);
+    let dx = lookX - ex, dy = lookY - ey; const d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 160) * 2.2;
+    g.setAttribute("transform", `translate(${fx(dx / d * k)} ${fx(dy / d * k * .8)})`);
+  }
+}
+if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  addEventListener("pointermove", (ev) => { lookX = ev.clientX; lookY = ev.clientY; if (!lookQueued) { lookQueued = true; requestAnimationFrame(updateLook); } }, { passive: true });
 }
 route();
 </script>
